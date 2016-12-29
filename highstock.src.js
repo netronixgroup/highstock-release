@@ -879,9 +879,12 @@
          * @return {Number} - The timezone offset in minutes compared to UTC.
          */
         H.getTZOffset = function(timestamp) {
-            var d = H.Date;
-            return ((d.hcGetTimezoneOffset && d.hcGetTimezoneOffset(timestamp)) ||
-                d.hcTimezoneOffset || 0) * 60000;
+            var d = H.Date, timezoneOffset;
+            timezoneOffset = (d.hcGetTimezoneOffset && d.hcGetTimezoneOffset(timestamp)) || d.hcTimezoneOffset || 0;
+            if(this && this.chart && this.chart.userOptions && this.chart.userOptions.timezoneOffset) {
+              timezoneOffset = this.chart.userOptions.timezoneOffset;
+            }
+            return timezoneOffset * 60000;
         };
 
         /**
@@ -903,7 +906,7 @@
             format = H.pick(format, '%Y-%m-%d %H:%M:%S');
 
             var D = H.Date,
-                date = new D(timestamp - H.getTZOffset(timestamp)),
+                date = new D(timestamp - H.getTZOffset.call(this, timestamp)),
                 key, // used in for constuct below
                 // get the basic time values
                 hours = date[D.hcGetHours](),
@@ -7514,7 +7517,7 @@
                 var d;
                 if (useUTC) {
                     d = Date.UTC.apply(0, arguments);
-                    d += getTZOffset(d);
+                    d += getTZOffset.call(this, d);
                 } else {
                     d = new Date(
                         year,
@@ -8758,7 +8761,7 @@
                     ret = value;
 
                 } else if (dateTimeLabelFormat) { // datetime axis
-                    ret = H.dateFormat(dateTimeLabelFormat, value);
+                    ret = H.dateFormat.call(this, dateTimeLabelFormat, value);
 
                 } else if (i && numericSymbolDetector >= 1000) {
                     // Decide whether we should add a numeric symbol like k (thousands) or M (millions).
@@ -10942,7 +10945,7 @@
                 higherRanks = {},
                 useUTC = defaultOptions.global.useUTC,
                 minYear, // used in months and years as a basis for Date.UTC()
-                minDate = new Date(min - getTZOffset(min)),
+                minDate = new Date(min - getTZOffset.call(this, min)),
                 makeTime = Date.hcMakeTime,
                 interval = normalizedInterval.unitRange,
                 count = normalizedInterval.count,
@@ -11013,12 +11016,12 @@
                             max - min > 4 * timeUnits.month ||
                             // Short range, check if min and max are in different time 
                             // zones.
-                            getTZOffset(min) !== getTZOffset(max)
+                            getTZOffset.call(this, min) !== getTZOffset.call(this, max)
                         );
 
                     // Adjust minDate to the offset date
                     minDate = minDate.getTime();
-                    minDate = new Date(minDate + getTZOffset(minDate));
+                    minDate = new Date(minDate + getTZOffset.call(this, minDate));
                 }
 
 
@@ -11059,9 +11062,10 @@
 
                 // Handle higher ranks. Mark new days if the time is on midnight
                 // (#950, #1649, #1760, #3349)
+                var _this = this;
                 if (interval <= timeUnits.hour) {
                     each(tickPositions, function(time) {
-                        if (dateFormat('%H%M%S%L', time) === '000000000') {
+                        if (dateFormat.call(_this, '%H%M%S%L', time) === '000000000') {
                             higherRanks[time] = 'day';
                         }
                     });
@@ -23068,7 +23072,7 @@
 
                 // Compare points two by two
                 for (start = 1; start < end; start++) {
-                    if (dateFormat('%d', groupPositions[start]) !== dateFormat('%d', groupPositions[start - 1])) {
+                    if (dateFormat.call(this, '%d', groupPositions[start]) !== dateFormat.call(this, '%d', groupPositions[start - 1])) {
                         higherRanks[groupPositions[start]] = 'day';
                         hasCrossedHigherRank = true;
                     }
@@ -24434,9 +24438,9 @@
                 }
 
                 // now format the key
-                formattedKey = dateFormat(xDateFormat, labelConfig.key);
+                formattedKey = dateFormat.call(this, xDateFormat, labelConfig.key);
                 if (xDateFormatEnd) {
-                    formattedKey += dateFormat(xDateFormatEnd, labelConfig.key + currentDataGrouping.totalRange - 1);
+                    formattedKey += dateFormat.call(this, xDateFormatEnd, labelConfig.key + currentDataGrouping.totalRange - 1);
                 }
 
                 // return the replaced format
